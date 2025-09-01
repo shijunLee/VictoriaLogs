@@ -228,6 +228,8 @@ func RequestHandler(w http.ResponseWriter, r *http.Request) bool {
 		return processPartitionAttach(w, r)
 	case "/internal/partition/detach":
 		return processPartitionDetach(w, r)
+	case "/internal/partition/delete":
+		return processPartitionDelete(w, r)
 	case "/internal/partition/list":
 		return processPartitionList(w, r)
 	case "/internal/partition/snapshot/create":
@@ -288,6 +290,25 @@ func processPartitionAttach(w http.ResponseWriter, r *http.Request) bool {
 
 	name := r.FormValue("name")
 	if err := localStorage.PartitionAttach(name); err != nil {
+		httpserver.Errorf(w, r, "%s", err)
+		return true
+	}
+
+	return true
+}
+
+func processPartitionDelete(w http.ResponseWriter, r *http.Request) bool {
+	if localStorage == nil {
+		// There are no partitions in non-local storage
+		return false
+	}
+
+	if !httpserver.CheckAuthFlag(w, r, partitionManageAuthKey) {
+		return true
+	}
+
+	name := r.FormValue("name")
+	if err := localStorage.PartitionDetach(name); err != nil {
 		httpserver.Errorf(w, r, "%s", err)
 		return true
 	}

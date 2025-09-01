@@ -955,3 +955,43 @@ func (s *Storage) DebugFlush() {
 func durationToDays(d time.Duration) int64 {
 	return int64(d / (time.Hour * 24))
 }
+func (s *Storage) PartitionDelete(name string) error {
+	ptw := func() *partitionWrapper {
+		s.partitionsLock.Lock()
+		defer s.partitionsLock.Unlock()
+
+		for i, ptw := range s.partitions {
+			if ptw.pt.name != name {
+				continue
+			}
+
+			// Found the partition to detach. Detach it.
+			s.partitions = append(s.partitions[:i], s.partitions[i+1:]...)
+			if ptw == s.ptwHot {
+				s.ptwHot = nil
+			}
+			return ptw
+		}
+		return nil
+	}()
+	// if not found ptw then the file not need delete for current storage
+	if ptw == nil {
+		return nil
+	}
+
+	partitionPath := ptw.pt.path
+	// if the ptw is need delete in storage retention ,this will delete file form storage
+	ptw.decRef()
+
+	// if detatch file and exist in path then delete file
+	_, err := os.Stat(ptw.pt.path)
+	if err == nil {
+		mustDeletePartition(ptw.pt.path)
+	}
+	logger.Infof("waiting until the partition %q isn't accessed", name)
+	<-ptw.doneCh
+
+	logger.Infof("successfully delete partition %q from %q", name, partitionPath)
+
+	return nil
+}
