@@ -984,9 +984,9 @@ func (s *Storage) PartitionDelete(name string) error {
 	ptw.decRef()
 
 	// if detatch file and exist in path then delete file
-	_, err := os.Stat(ptw.pt.path)
+	_, err := os.Stat(partitionPath)
 	if err == nil {
-		mustDeletePartition(ptw.pt.path)
+		mustDeletePartition(partitionPath)
 	}
 	logger.Infof("waiting until the partition %q isn't accessed", name)
 	<-ptw.doneCh
