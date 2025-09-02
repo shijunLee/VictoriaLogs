@@ -308,7 +308,7 @@ func processPartitionDelete(w http.ResponseWriter, r *http.Request) bool {
 	}
 
 	name := r.FormValue("name")
-	if err := localStorage.PartitionDetach(name); err != nil {
+	if err := localStorage.PartitionDelete(name); err != nil {
 		httpserver.Errorf(w, r, "%s", err)
 		return true
 	}
